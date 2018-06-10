@@ -15,7 +15,7 @@ from newssentiment.conf import (consumer_key,
 N_PAGE_TWEETS = 20
 
 
-class TweetSentiment(object):
+class TweetSentiments(object):
 
     def __init__(self, n_tweets=100, verbose=False):
 
@@ -33,6 +33,7 @@ class TweetSentiment(object):
         self.analyzer = SentimentIntensityAnalyzer()
 
     def get_scores(self, queries):
+        
 
         sentiments = []
         if not hasattr(queries, "__iter__"):
@@ -86,18 +87,19 @@ class TweetSentiment(object):
         return sentiments
 
 
-class TweetSentimentBot(TweetSentiment):
+class TweetSentimentsBot(TweetSentiments):
 
     def __init__(self, screen_name="NewsSentiment", *args, **kwargs):
 
-        super(TweetSentiment, self).__init__(*args, **kwargs)
+        super(TweetSentiments, self).__init__(*args, **kwargs)
 
         self.bot_screen_name = screen_name
+        self._since_id = 0
         self._total_tweets = 0
 
-    def eval_mentions(self, since_id):
+    def eval_mentions(self, since_id=0):
 
-        mentions = self.api.mentions_timeline(since_id)
+        mentions = self.api.mentions_timeline(self._since_id)
         n_mentions = len(mentions)
 
         if self.verbose:
@@ -108,10 +110,10 @@ class TweetSentimentBot(TweetSentiment):
 
         if n_mentions > 0:
 
-            mention_queries = []
             for mention in mentions:
                 # parse mention
                 mention_parsed = self.parse_mention(mention)
+                self._since_id = mention_parsed["id"]
                 ffname = self.respond_queries(mention_parsed["queries"])
 
         return ffname

@@ -33,7 +33,7 @@ class TweetSentiments(object):
         self.analyzer = SentimentIntensityAnalyzer()
 
     def get_scores(self, queries):
-        
+
 
         sentiments = []
         if not hasattr(queries, "__iter__"):

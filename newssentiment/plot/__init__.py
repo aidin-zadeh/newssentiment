@@ -157,7 +157,9 @@ class Bar(object):
                  gridalpha=0.5,
                  ax=None,
                  figsize=(12, 8),
-                 label=False):
+                 label=False,
+                 labelformat="{:2.0f}%",
+                 labellocs=None,):
 
         self.color = color
         self.edgecolor = edgecolor
@@ -177,6 +179,8 @@ class Bar(object):
         self.gridalpha = gridalpha
         self.figsize = figsize
         self.label = label
+        self.labelformat = labelformat
+        self.labellocs = labellocs
 
         # create figure/axis handler
         if ax is None:
@@ -209,6 +213,7 @@ class Bar(object):
 
         self.ax.set_ylabel(self.ylabel)
         self.ax.set_xlabel(self.xlabel)
+        self.ax.set_ylim([min(y)-0.3*max(y), 1.3*max(y)])
 
         self.ax.xaxis.label.set_size(self.labelfontsize)
         self.ax.yaxis.label.set_size(self.labelfontsize)
@@ -216,12 +221,11 @@ class Bar(object):
         if self.label:
             for (xi, yi) in zip(x, y):
                 self.ax.text(
-                   x=xi, y=yi * 1.2,
-                   s="{:2.0f}%".format(yi),
+                   x=xi, y=yi + max(abs(y)) * 0.1 * np.sign(yi),
+                   s=self.labelformat.format(yi),
                    color="k",
                    horizontalalignment="center",
                    fontsize=14,
                    fontweight="bold")
 
-            self.ax.set_ylim([min(y)*1.3, max(y)*1.3])
         plt.tight_layout()

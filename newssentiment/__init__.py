@@ -1,16 +1,25 @@
 
-import os
+import os, sys, inspect
 import time
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import tweepy
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from newssentiment.plot import Scatter
+from newssentiment.plot import Trend
 # get Twitter API keys
 from newssentiment.conf import (consumer_key,
                                 consumer_secret,
                                 access_token,
                                 access_token_secret)
+
+# get current dir
+currdir = os.path.dirname(os.path.abspath(inspect.getabsfile(inspect.currentframe())))
+rootdir = os.path.dirname(currdir)
+
+plt.ioff()
+plt.style.use('seaborn')
+
 # number of tweets per page
 N_PAGE_TWEETS = 20
 
@@ -55,7 +64,7 @@ class TweetSentiments(object):
             public_tweets = self.api.user_timeline(query, max_id=oldest_tweet)
             for index, tweet in enumerate(public_tweets):
 
-                if self.verbose:
+                if self.verbose == 1:
                     print("[{:s}] {:4}-({:3d} {:4d}) --> {:s} ".format(
                         query, count + 1, p, index, tweet["text"]
                     ))
@@ -90,36 +99,56 @@ class TweetSentimentsBot(TweetSentiments):
 
     def __init__(self, screen_name="NewsSentiment", *args, **kwargs):
 
-        super(TweetSentiments, self).__init__(*args, **kwargs)
+        super(TweetSentimentsBot, self).__init__(*args, **kwargs)
 
         self.bot_screen_name = screen_name
-        self._since_id = 0
+        self._since_id = 1
         self._total_tweets = 0
 
-    def eval_mentions(self, since_id=0):
+    def eval_mentions(self, since_id=None):
 
-        mentions = self.api.mentions_timeline(self._since_id)
+        if since_id:
+            self._since_id = since_id
+
+        try:
+            if self.verbose == 2:
+                print("Scanning for mentions...", end="")
+            mentions = self.api.mentions_timeline(self._since_id)[::-1]
+            if self.verbose == 2:
+                print("completed.", end="")
+        except tweepy.TweepError as e:
+            print("Error: {:s}".format(str(e)))
         n_mentions = len(mentions)
 
-        if self.verbose:
+        if self.verbose == 2:
             if n_mentions > 0:
-                print(f"{n_mentions} mentions retrieved since last scan!")
+                print(f" {n_mentions} mentions retrieved since the last scan!")
             else:
-                print(f"No mention since last scan!")
+                print(f" No mention since the last scan!")
 
         if n_mentions > 0:
 
+            # list to store unique user screen names
+            mention_users_processed = []
             for mention in mentions:
                 # parse mention
                 mention_parsed = self.parse_mention(mention)
-                self._since_id = mention_parsed["id"]
-                ffname = self.respond_queries(mention_parsed["queries"])
+                if mention_parsed["screen_name"] not in mention_users_processed and \
+                        len(mention_parsed["queries"]) != 0:
+                    self._since_id = mention_parsed["id"]
+                    self.respond_queries(mention_parsed["screen_name"], mention_parsed["queries"])
 
-        return ffname
+                    mention_users_processed.append(mention_parsed["screen_name"])
+                elif mention_parsed["screen_name"] in mention_users_processed:
+                    print("Queries from {:s}...skipped. Multiple mentions!".format(mention_parsed["screen_name"]))
+                elif n_mentions == 0:
+                    print("Queries from {:s}...skipped. Invalid queries!".format(mention_parsed["screen_name"]))
+
+            return mention_parsed["id"]
+        else:
+            return self._since_id
 
     def parse_mention(self, mention):
-
-        print(mention.keys())
 
         mention_id = mention["id"]
         mention_screen_name = mention["user"]["screen_name"]
@@ -128,14 +157,31 @@ class TweetSentimentsBot(TweetSentiments):
         for elem in mention["entities"]["user_mentions"]:
             if elem["screen_name"] != self.bot_screen_name:
                 queries.append(elem["screen_name"])
+
         return {"id": mention_id, "screen_name": mention_screen_name, "queries": queries}
 
-    def respond_queries(self, queries):
-
+    def respond_queries(self, screen_name, queries):
+        # list to store store unique queries
+        queries_processed = []
         for query in queries:
-            sentiments =  self.get_score(query)
-            ffname = self.plot_sentiments(sentiments, query)
-        return 0
+            if self.verbose == 2:
+                print(f"Responding to {screen_name} for {query}...", end="")
+            if query not in queries_processed:
+                try:
+                    sentiments = self.get_score(query)
+                    ffname = self.plot_sentiments(sentiments, query)
+                except:
+                    pass
+                try:
+                    queries_processed.append(query)
+                    self.api.update_with_media(ffname, "@{:s}".format(screen_name))
+                    if self.verbose == 2:
+                        print("completed.")
+                except tweepy.TweepError as e:
+                    print("Error: {:s}".format(str(e)))
+            else:
+                if self.verbose == 2:
+                    print("skipped. (duplicate query)")
 
     def plot_sentiments(self, sentiments, query=""):
 
@@ -145,41 +191,42 @@ class TweetSentimentsBot(TweetSentiments):
 
         df = pd.DataFrame(sentiments)
         df = df.reset_index()
-        df.plot('index', 'compound', linestyle='-', marker='o', alpha=0.75)
 
         x = df.index.values
         y = df["Compound"].values
         title = f"Sentiment Analysis of {query}" + os.linesep + f"{currtimestr}"
 
-        scatter = Scatter()
-        scatter.figsize = (15, 12)
-        scatter.marker = "o-"
-        scatter.markersize = 12
-        scatter.markeredgewidth = 1
-        scatter.markerfacecolor = "blue"
-        scatter.markeredgecolor = "white"
-        scatter.alpha = 0.7
-        scatter.xlim = [-len(x)-2, 2]
-        scatter.ylim = [-1, 1]
-        scatter.xlabel = "Tweets Ago"
-        scatter.ylabel = "Tweet Polarity"
-        scatter.title = title
-        scatter.ax.spines['top'].set_visible(False)
-        scatter.ax.spines['right'].set_visible(False)
-        scatter.ax.spines['bottom'].set_visible(False)
-        scatter.ax.spines['left'].set_visible(False)
-        scatter.label = query
-        scatter(x, y)
+        trend = Trend()
+        trend.figsize = (8, 5)
+        trend.color = "blue"
+        trend.marker = "o"
+        trend.linestyle = "-"
+        trend.markersize = 12
+        trend.markeredgewidth = 1
+        trend.markerfacecolor = "blue"
+        trend.markeredgecolor = "white"
+        trend.alpha = 0.8
+        # trend.xlim = [-len(x)-2, 2]
+        trend.ylim = [-1., 1.]
+        trend.xlabel = "Tweets Ago"
+        trend.ylabel = "Tweet Polarity"
+        trend.title = title
+        trend.ax.spines['top'].set_visible(False)
+        trend.ax.spines['right'].set_visible(False)
+        trend.ax.spines['bottom'].set_visible(False)
+        trend.ax.spines['left'].set_visible(False)
+        trend.label = query
+        trend(x, y, "o-")
 
         t = time.strftime("%Y-%m-%d-%H-%M", currtime)
-        ffname = os.path.join("data", "int", f"compound-scatter-{t}")
-        scatter.fig.savefig(ffname, transparent=False, bbox_inches="tight")
+        ffname = os.path.join(currdir, "data", "int", f"compound-scatter.png")
+        trend.fig.savefig(ffname, transparent=False, bbox_inches="tight")
+
         return ffname
 
 
-
-
-
-
+# sentiment_bot = TweetSentimentsBot(verbose=True)
+# dd = sentiment_bot.eval_mentions()
+# mentions = sentiment_bot.api.mentions_timeline(since_id=2)
 
 

@@ -1,5 +1,5 @@
 
-import os, sys, inspect
+import os, inspect
 import time
 import numpy as np
 import pandas as pd
@@ -11,7 +11,8 @@ from newssentiment.plot import Trend
 from newssentiment.conf import (consumer_key,
                                 consumer_secret,
                                 access_token,
-                                access_token_secret)
+                                access_token_secret,
+                                owner_id)
 
 # get current dir
 currdir = os.path.dirname(os.path.abspath(inspect.getabsfile(inspect.currentframe())))
@@ -97,11 +98,11 @@ class TweetSentiments(object):
 
 class TweetSentimentsBot(TweetSentiments):
 
-    def __init__(self, screen_name="NewsSentiment", *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         super(TweetSentimentsBot, self).__init__(*args, **kwargs)
 
-        self.bot_screen_name = screen_name
+        self.bot_screen_name = self.api.get_user(owner_id)["screen_name"]
         self._since_id = 1
         self._total_tweets = 0
 
@@ -174,7 +175,8 @@ class TweetSentimentsBot(TweetSentiments):
                     pass
                 try:
                     queries_processed.append(query)
-                    self.api.update_with_media(ffname, "@{:s}".format(screen_name))
+                    self.api.update_with_media(ffname, "@{:s}: @{:s} sentiment polarity plot.".format(
+                        screen_name, query))
                     if self.verbose == 2:
                         print("completed.")
                 except tweepy.TweepError as e:
@@ -224,9 +226,5 @@ class TweetSentimentsBot(TweetSentiments):
 
         return ffname
 
-
-# sentiment_bot = TweetSentimentsBot(verbose=True)
-# dd = sentiment_bot.eval_mentions()
-# mentions = sentiment_bot.api.mentions_timeline(since_id=2)
 
 

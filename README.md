@@ -3,8 +3,8 @@
 By *Aidin Hassanzadeh*
 ___
 
-This repository contains Python/NootebookIPython files for the 'News Sentiment Analysis' project.
-The aim of this project is to perform quantitative analysis of different weather trend data with respect to latitude.
+This repository contains Python/NootebookIPython files for the 'News Sentiment Analysis' project. This project is 
+The main objective of this project is to provide a data driven approach to compare the volume of positive and negative news as tweeted by 5 major news outlets, namely CBS. CNN, BBC, Fox News and New York Times.
 
 ## Data
 The data utilized in this analysis work is obtained by Twitter API on 06.14.2018 17:10 (UTC). The sentiments of tweets are estimated by [VADER-Sentiment-Analysis](https://github.com/cjhutto/vaderSentiment). 
@@ -20,6 +20,7 @@ The visual report containing the discovered insights and the detailed implementa
 - matplotlib=2.2.2
 - pandas=0.22.0
 - scipy=1.1.0
+- tqdm=4.23.4
 - vaderSentiment
 
 ## Directory Structure

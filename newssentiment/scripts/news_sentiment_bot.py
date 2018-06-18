@@ -5,17 +5,11 @@ import numpy as np
 from newssentiment import TweetSentimentsBot
 from tqdm import tqdm
 
+
 argparser = argparse.ArgumentParser(
     description="Execute a twitter bot that performs sentiment analysis for user-names as specified in mentions."
 )
 
-argparser.add_argument(
-    "-u",
-    "--user",
-    default="NewsSentiment",
-    type=str,
-    help="twitter user-name (screen name) to deploy the bot (default = '')",
-)
 argparser.add_argument(
     "-t",
     "--tweets",
@@ -43,15 +37,12 @@ argparser.add_argument(
 
 def _main(args):
 
-    screen_name = args.user
     n_tweets = args.tweets
     wait_time_min = args.wait
     verbose = args.verbose
 
     # init. an instance from TweetSentimentBot
-    sentiment_bot = TweetSentimentsBot(screen_name=screen_name,
-                                       n_tweets=n_tweets,
-                                       verbose=verbose)
+    sentiment_bot = TweetSentimentsBot(n_tweets=n_tweets, verbose=verbose)
     # set waite time between each scan
     wait_time_sec = int(np.ceil(wait_time_min * 60))
 

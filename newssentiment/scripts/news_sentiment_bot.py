@@ -7,7 +7,8 @@ from tqdm import tqdm
 
 
 argparser = argparse.ArgumentParser(
-    description="Execute a twitter bot that performs sentiment analysis for user-names as specified in mentions."
+    description="Execute a twitter bot that performs sentiment analysis for user-names as specified in mentions.",
+    epilog="Example of use: `python -m newssentiment.scripts.news_sentiment_bot --tweets 500 --wait 1 --verbose 2`"
 )
 
 argparser.add_argument(

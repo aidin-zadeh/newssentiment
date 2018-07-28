@@ -27,7 +27,7 @@ The visual report containing the discovered insights and the detailed implementa
 
 ## Directory Structure
 
-```bash
+```
 .
 ├── docs                <- Documents related to this project.    
 ├── images              <- Images for README.md files.
